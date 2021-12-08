@@ -37,6 +37,7 @@ class ImageDataset(Dataset):
     image=self.transform(image)
     targets=self.labels[index]
 
+
     sample = (image,targets)
  
     return sample

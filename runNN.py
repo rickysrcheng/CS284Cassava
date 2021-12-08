@@ -1,4 +1,5 @@
 from cv2 import _InputArray_STD_ARRAY_MAT
+from sklearn.utils import class_weight
 from model import *
 from data import *
 import torch.optim as optim
@@ -6,6 +7,8 @@ from torch.utils.data import DataLoader
 import matplotlib.pyplot as plt
 import numpy as np
 from torchinfo import summary
+import time
+from sklearn.utils.class_weight import compute_class_weight
 
 img_folder = 'cassava-leaf-disease-classification\\train_images'
 BATCH_SIZE = 20
@@ -19,6 +22,11 @@ test_set.to_csv('test_set.csv')
 train_set = pd.read_csv('train_set.csv')
 test_set = pd.read_csv('test_set.csv')
 
+# computes class weights since our dataset is terribly imbalanced
+train_labels = np.array(train_set['label'])
+class_weights= compute_class_weight(class_weight='balanced', classes=np.unique(train_labels), y=train_labels)
+
+print(f"Class imbalance: { train_set['label'].value_counts(normalize=True) }")
 print(len(train_set), len(test_set))
 
 
@@ -52,15 +60,15 @@ test_dataloader = DataLoader(
 
 device = torch.device('cuda:2') if torch.cuda.is_available() else torch.device('cpu')
 print(f'Using {device} device')
-print(torch.cuda.device_count())
-
 
 model = ConvNN(5, 0.5)
 summary(model, input_size=(BATCH_SIZE,3,600,800))
 
+# gotta move stuff to device first
+class_weights = torch.tensor(class_weights, dtype=torch.float, device=device)
 model.to(device)
 
-loss_fn = nn.CrossEntropyLoss()
+loss_fn = nn.CrossEntropyLoss(weight=class_weights)
 optimizer = optim.Adam(model.parameters(), lr=0.001)
 
 
@@ -73,7 +81,6 @@ def train_loop(dataloader, model, loss_fn, optimizer):
         inputs, labels = data[0].to(device), data[1].to(device)
         pred = model(inputs)
         loss = loss_fn(pred, labels)
-
         # Backpropagation
         optimizer.zero_grad()
         loss.backward()
@@ -97,11 +104,14 @@ def test_loop(dataloader, model, loss_fn):
 
     test_loss /= num_batches
     correct /= size
-    print(f"Test Error: \n Accuracy: {(100*correct):>0.1f}%, Avg loss: {test_loss:>8f} \n")
+    print(f"Test Error: \n Accuracy: {(100*correct):>0.1f}%, Avg loss: {test_loss:>8f}")
+    return correct
 
-epochs = 10
+epochs = 100
 for t in range(epochs):
     print(f"Epoch {t+1}\n-------------------------------")
+    start = time.time()
     train_loop(train_dataloader, model, loss_fn, optimizer)
     test_loop(test_dataloader, model, loss_fn)
+    print(f"Epoch training time: {time.time()-start}\n")
 print("Done!")

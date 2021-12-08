@@ -7,7 +7,7 @@ class ConvNN(nn.Module):
 
     # I have no idea what I'm doing
     def __init__(self, num_classes: int = 5, dropout: float=0.5):
-        super().__init__()
+        super(ConvNN, self).__init__()
         # input image 600 x 800
         # (n, 3, 600, 800)
         self.layer1 = nn.Sequential(
