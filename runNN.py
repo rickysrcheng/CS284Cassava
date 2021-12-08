@@ -26,7 +26,7 @@ test_set = pd.read_csv('test_set.csv')
 train_labels = np.array(train_set['label'])
 class_weights= compute_class_weight(class_weight='balanced', classes=np.unique(train_labels), y=train_labels)
 
-print(f"Class imbalance: { train_set['label'].value_counts(normalize=True) }")
+print(f"Class imbalance: \n{ train_set['label'].value_counts(normalize=True) }")
 print(len(train_set), len(test_set))
 
 
@@ -58,12 +58,24 @@ test_dataloader = DataLoader(
     shuffle=True
 )
 
+def weights_init(m):
+    classname = m.__class__.__name__
+    if type(m) == nn.Conv2d:
+        torch.nn.init.normal_(m.weight, 0.0, 0.02)
+    elif type(m) == nn.BatchNorm2d:
+        torch.nn.init.normal_(m.weight, 1.0, 0.02)
+        torch.nn.init.zeros_(m.bias)
+    elif type(m) == nn.Linear:
+        torch.nn.init.normal_(m.weight, 1.0, 0.02)
+        torch.nn.init.zeros_(m.bias)
+
 device = torch.device('cuda:2') if torch.cuda.is_available() else torch.device('cpu')
 print(f'Using {device} device')
 
 model = ConvNN(5, 0.5)
-summary(model, input_size=(BATCH_SIZE,3,600,800))
+#summary(model, input_size=(BATCH_SIZE,3,600,800))
 
+model.apply(weights_init)
 # gotta move stuff to device first
 class_weights = torch.tensor(class_weights, dtype=torch.float, device=device)
 model.to(device)
