@@ -30,19 +30,21 @@ class ConvNN(nn.Module):
         )
 
         self.layer4 = nn.Sequential(
-            nn.Conv2d(150, 50, kernel_size=3, stride=1, padding=1),
+            nn.Conv2d(150, 300, kernel_size=3, stride=1, padding=1),
             nn.ReLU(),
             nn.MaxPool2d(2,2), # 37 x 50
         )
 
         self.layer5 = nn.Sequential(
-            nn.Conv2d(50, 50, kernel_size=3, stride=1, padding=1),
+            nn.Conv2d(300, 300, kernel_size=3, stride=1, padding=1),
+            nn.ReLU(),
+            nn.Conv2d(300, 300, kernel_size=3, stride=1, padding=1),
             nn.ReLU(),
             nn.MaxPool2d(2,2), # 18 x 25
         )
 
         self.layer6 = nn.Sequential(
-            nn.Conv2d(50, 50, kernel_size=3, stride=1, padding=1),
+            nn.Conv2d(300, 300, kernel_size=3, stride=1, padding=1),
             nn.ReLU(),
             nn.MaxPool2d(2,2), # 9 x 12
         )
@@ -50,12 +52,12 @@ class ConvNN(nn.Module):
         # (n, 50, 9, 12)
         self.hidden = nn.Sequential(
             nn.Dropout(p=dropout),
-            nn.Linear(50 * 9 * 12, 2048),
+            nn.Linear(300 * 9 * 12, 2048),
             nn.ReLU(inplace=True),
             nn.Dropout(p=dropout),
-            nn.Linear(2048, 1024),
+            nn.Linear(2048, 2048),
             nn.ReLU(inplace=True),
-            nn.Linear(1024, num_classes),
+            nn.Linear(2048, num_classes),
         )
     def forward(self, x: torch.Tensor):
 

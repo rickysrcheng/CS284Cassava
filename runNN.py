@@ -8,7 +8,7 @@ import numpy as np
 from torchinfo import summary
 
 img_folder = 'cassava-leaf-disease-classification\\train_images'
-BATCH_SIZE = 16
+BATCH_SIZE = 20
 '''
 df = pd.read_csv('cassava-leaf-disease-classification\\train.csv')
 train_set, test_set = train_test_split(df, test_size=0.2)
@@ -25,8 +25,8 @@ print(len(train_set), len(test_set))
 train_transform = transforms.Compose([
                 transforms.ToPILImage(),
                 transforms.Resize((600,800)),
-                #transforms.RandomHorizontalFlip(p=0.5),
-                #transforms.RandomRotation(degrees=45),
+                transforms.RandomHorizontalFlip(p=0.5),
+                transforms.RandomRotation(degrees=45),
                 transforms.ToTensor()])
  
 test_transform =transforms.Compose([
@@ -56,35 +56,52 @@ print(torch.cuda.device_count())
 
 
 model = ConvNN(5, 0.5)
-
+summary(model, input_size=(BATCH_SIZE,3,600,800))
 
 model.to(device)
-#summary(model, input_size=(32,3,600,800))
 
-criterion = nn.CrossEntropyLoss()
-optimizer = optim.SGD(model.parameters(), lr=0.001, momentum=0.9)
+loss_fn = nn.CrossEntropyLoss()
+optimizer = optim.Adam(model.parameters(), lr=0.001)
 
-for epoch in range(2):  # loop over the dataset multiple times
 
-    running_loss = 0.0
-    for i, data in enumerate(train_dataloader, 0):
-        # get the inputs; data is a list of [inputs, labels]
-        #inputs, labels = data
+# train_loop and test_loop is from https://pytorch.org/tutorials/beginner/basics/optimization_tutorial.html
+def train_loop(dataloader, model, loss_fn, optimizer):
+    size = len(dataloader.dataset)
+    check = 20
+    for batch, data in enumerate(dataloader):
+        # Compute prediction and loss
         inputs, labels = data[0].to(device), data[1].to(device)
-        # zero the parameter gradients
-        optimizer.zero_grad()
+        pred = model(inputs)
+        loss = loss_fn(pred, labels)
 
-        # forward + backward + optimize
-        outputs = model(inputs)
-        loss = criterion(outputs, labels)
+        # Backpropagation
+        optimizer.zero_grad()
         loss.backward()
         optimizer.step()
 
-        # print statistics
-        running_loss += loss.item()
-        if i % 2000 == 1999:    # print every 2000 mini-batches
-            print('[%d, %5d] loss: %.3f' %
-                  (epoch + 1, i + 1, running_loss / 2000))
-            running_loss = 0.0
+        if batch % check == check-1:
+            loss, current = loss.item(), (batch*BATCH_SIZE) + len(inputs)
+            print(f"loss: {loss:>7f}  [{current:>5d}/{size:>5d}]")
 
-print('Finished Training')
+def test_loop(dataloader, model, loss_fn):
+    size = len(dataloader.dataset)
+    num_batches = len(dataloader)
+    test_loss, correct = 0, 0
+
+    with torch.no_grad():
+        for data in dataloader:
+            X,y = data[0].to(device), data[1].to(device)
+            pred = model(X)
+            test_loss += loss_fn(pred, y).item()
+            correct += (pred.argmax(1) == y).type(torch.float).sum().item()
+
+    test_loss /= num_batches
+    correct /= size
+    print(f"Test Error: \n Accuracy: {(100*correct):>0.1f}%, Avg loss: {test_loss:>8f} \n")
+
+epochs = 10
+for t in range(epochs):
+    print(f"Epoch {t+1}\n-------------------------------")
+    train_loop(train_dataloader, model, loss_fn, optimizer)
+    test_loop(test_dataloader, model, loss_fn)
+print("Done!")
