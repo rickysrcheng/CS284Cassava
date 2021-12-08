@@ -4,8 +4,9 @@ import torch
 import torchvision.transforms as transforms
 import torchvision
  
-from torch.utils.data import DataLoader,Dataset
+from torch.utils.data import Dataset
  
+#from skimage import io, transform
 import cv2
 import numpy as np
 import matplotlib.pyplot as plt
@@ -17,7 +18,8 @@ class ImageDataset(Dataset):
     self.img_folder=img_folder
      
     self.image_names=self.csv[:]['image_id']
-    self.labels=np.array(self.csv.drop(['image_id'], axis=1))
+    self.labels=np.array(self.csv['label'])
+   #print(self.image_names)
 
    
 #The __len__ function returns the number of samples in our dataset.
@@ -25,14 +27,17 @@ class ImageDataset(Dataset):
     return len(self.image_names)
  
   def __getitem__(self,index):
-     
+
     image=cv2.imread(self.img_folder+ '\\'  + self.image_names.iloc[index])
-    #print(self.img_folder+ '\\' + self.image_names.iloc[index])
+
     image=cv2.cvtColor(image,cv2.COLOR_BGR2RGB)
-    #print(self.labels)
+
+    #image = io.imread(self.img_folder+ '\\'  + self.image_names.iloc[index])
+
     image=self.transform(image)
     targets=self.labels[index]
-    sample = {'image': image,'labels':targets}
+
+    sample = (image,targets)
  
     return sample
 
