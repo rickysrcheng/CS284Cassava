@@ -11,53 +11,55 @@ class ConvNN(nn.Module):
         # input image 600 x 800
         # (n, 3, 600, 800)
         self.layer1 = nn.Sequential(
-            nn.Conv2d(3, 25, 3, stride=1, padding=1),
+            nn.Conv2d(3, 64, 3, stride=1, padding=1),
+            nn.ReLU(),
             nn.MaxPool2d(2,2) # 300 x 400
-        )
+        ) # 256
         # (n, 25, 300, 400)
 
         self.layer2 = nn.Sequential(
-            nn.Conv2d(25, 50, kernel_size=3, stride=1, padding=1),
+            nn.Conv2d(64, 64, kernel_size=3, stride=1, padding=1),
             nn.ReLU(),
             nn.MaxPool2d(2,2), # 150 x 200
-        )
+        ) # 128
 
         # (n, 50, 150, 200)
         self.layer3 = nn.Sequential(
-            nn.Conv2d(50, 150, kernel_size=3, stride=1, padding=1),
+            nn.Conv2d(64, 128, kernel_size=3, stride=1, padding=1),
             nn.ReLU(),
             nn.MaxPool2d(2,2), # 75 x 100
-        )
+        ) # 64
 
         self.layer4 = nn.Sequential(
-            nn.Conv2d(150, 300, kernel_size=3, stride=1, padding=1),
+            nn.Conv2d(128, 256, kernel_size=3, stride=1, padding=1),
             nn.ReLU(),
             nn.MaxPool2d(2,2), # 37 x 50
-        )
+        ) # 32
 
         self.layer5 = nn.Sequential(
-            nn.Conv2d(300, 300, kernel_size=3, stride=1, padding=1),
-            nn.ReLU(),
-            nn.Conv2d(300, 300, kernel_size=3, stride=1, padding=1),
+            nn.Conv2d(256, 512, kernel_size=3, stride=1, padding=1),
             nn.ReLU(),
             nn.MaxPool2d(2,2), # 18 x 25
-        )
+        ) # 16
 
         self.layer6 = nn.Sequential(
-            nn.Conv2d(300, 300, kernel_size=3, stride=1, padding=1),
+            nn.Conv2d(512, 256, kernel_size=3, stride=1, padding=1),
+            nn.BatchNorm2d(256),
             nn.ReLU(),
             nn.MaxPool2d(2,2), # 9 x 12
-        )
+        ) # 8
 
         # (n, 50, 9, 12)
         self.hidden = nn.Sequential(
             nn.Dropout(p=dropout),
-            nn.Linear(300 * 9 * 12, 2048),
+            nn.Linear(256 * 8 * 8, 1024),
+            nn.BatchNorm1d(1024),
             nn.ReLU(inplace=True),
             nn.Dropout(p=dropout),
-            nn.Linear(2048, 2048),
+            nn.Linear(1024, 1024),
+            nn.BatchNorm1d(1024),
             nn.ReLU(inplace=True),
-            nn.Linear(2048, num_classes),
+            nn.Linear(1024, num_classes),
         )
     def forward(self, x: torch.Tensor):
 
